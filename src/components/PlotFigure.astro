@@ -1,9 +1,74 @@
 ---
 import * as Plot from "@observablehq/plot";
 import { JSDOM } from "jsdom";
-const { options } = Astro.props;
+import { randomUUID } from "node:crypto";
 
-const plot = Plot.plot({ ...options, document: new JSDOM("").window.document });
+const {
+  options,
+  title,
+  subtitle,
+  caption,
+  figureId = `plot-${randomUUID()}`,
+} = Astro.props;
+
+const document = new JSDOM("").window.document;
+const plot = Plot.plot({ ...options, document });
+const titleId = title ? `${figureId}-title` : undefined;
+const subtitleId = subtitle ? `${figureId}-subtitle` : undefined;
+const captionId = caption ? `${figureId}-caption` : undefined;
+const describedBy = [subtitleId, captionId].filter(Boolean).join(" ") || undefined;
 ---
 
-<div set:html={plot.outerHTML} />
+<figure
+  class="plot-figure"
+  aria-labelledby={titleId}
+  aria-describedby={describedBy}
+>
+  {title && (
+    <header class="plot-figure__header">
+      <h2 id={titleId}>{title}</h2>
+      {subtitle && <p id={subtitleId}>{subtitle}</p>}
+    </header>
+  )}
+  <div class="plot-figure__container" role="group">
+    <div
+      class="plot-figure__viz"
+      id={figureId}
+      set:html={plot.outerHTML}
+    />
+  </div>
+  {caption && (
+    <figcaption id={captionId}>
+      {caption}
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  .plot-figure {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .plot-figure__header > h2 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  .plot-figure__header > p {
+    margin: 0.25rem 0 0;
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  .plot-figure__container {
+    overflow-x: auto;
+  }
+
+  .plot-figure__viz {
+    width: fit-content;
+  }
+
+  figcaption {
+    color: rgba(0, 0, 0, 0.8);
+  }
+</style>

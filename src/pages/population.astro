@@ -1,0 +1,253 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PlotFigure from "../components/PlotFigure.astro";
+import * as Plot from "@observablehq/plot";
+import departements from "../assets/departements.geojson.json";
+import populationMain from "../assets/populationMain.json";
+import populationScriptUrl from "../scripts/population-choropleth.ts?url";
+
+const periods = [...new Set(populationMain.map((d) => d["Période"]))].sort((a, b) => b - a);
+const sexes = [...new Set(populationMain.map((d) => d["Sexe"]))];
+const ages = [...new Set(populationMain.map((d) => d["Âge"]))];
+
+const defaultYear = periods[0];
+const defaultSex = sexes.includes("Total") ? "Total" : sexes[0];
+const defaultAge = ages.includes("Total") ? "Total" : ages[0];
+
+const valueKey = (dept, year, sex, age) => `${dept}|${year}|${sex}|${age}`;
+const valueLookup = new Map(populationMain.map((entry) => [
+  valueKey(entry["Géographie"], entry["Période"], entry["Sexe"], entry["Âge"]),
+  entry["Valeur"] ?? 0,
+]));
+
+const numberFormatter = new Intl.NumberFormat("fr-FR");
+
+const getDefaultValue = (deptName) =>
+  valueLookup.get(valueKey(deptName, defaultYear, defaultSex, defaultAge)) ?? 0;
+
+const plotOptions = {
+  projection: {
+    type: "mercator",
+    domain: departements,
+  },
+  color: {
+    type: "quantile",
+    n: 7,
+    scheme: "Blues",
+    label: "Population (habitants)",
+    legend: true,
+    reverse: false,
+  },
+  height: 560,
+  marginTop: 40,
+  marginBottom: 40,
+  ariaLabel:
+    "Carte choroplèthe des départements français indiquant la population pour l'année, le sexe et la tranche d'âge sélectionnés.",
+  marks: [
+    Plot.geo(departements, {
+      fill: (d) => getDefaultValue(d.properties.nom),
+      stroke: "#1f2937",
+      strokeWidth: 0.6,
+      title: (d) => {
+        const deptName = d.properties.nom;
+        const value = getDefaultValue(deptName);
+        return `${deptName} — ${numberFormatter.format(value)} habitant·e·s (${defaultAge}, ${defaultSex}, ${defaultYear})`;
+      },
+      tip: true,
+    }),
+    Plot.graticule({ stroke: "#cbd5f5", strokeOpacity: 0.35 }),
+  ],
+};
+
+const defaultSummary = `${numberFormatter.format(populationMain
+  .filter((entry) => entry["Période"] === defaultYear && entry["Sexe"] === defaultSex && entry["Âge"] === defaultAge)
+  .reduce((acc, entry) => acc + (entry["Valeur"] ?? 0), 0)
+)} habitant·e·s au total (${defaultSex}, ${defaultAge}) en ${defaultYear}.`;
+---
+
+<Layout>
+  <main class="page">
+    <div class="page__shell">
+      <header class="page__intro">
+        <h1>Population des départements (INSEE simulée)</h1>
+        <p>
+          Explorez la population départementale selon l'année, le sexe et la tranche d'âge. Le
+          graphique choroplèthe est accompagné d'une mise à jour en direct pour les technologies
+          d'assistance.
+        </p>
+      </header>
+
+      <section class="module module--controls" aria-label="Filtres de la carte des départements">
+        <div class="control-group">
+          <div class="control">
+            <label class="control__label" for="filter-year">Année</label>
+            <select id="filter-year" class="control__select" data-filter="periode">
+              {periods.map((year) => (
+                <option value={year} selected={year === defaultYear}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div class="control">
+            <label class="control__label" for="filter-sex">Sexe</label>
+            <select id="filter-sex" class="control__select" data-filter="sex">
+              {sexes.map((sex) => (
+                <option value={sex} selected={sex === defaultSex}>
+                  {sex}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div class="control">
+            <label class="control__label" for="filter-age">Tranche d'âge</label>
+            <select id="filter-age" class="control__select" data-filter="age">
+              {ages.map((age) => (
+                <option value={age} selected={age === defaultAge}>
+                  {age}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="button" class="control__reset" id="filters-reset">
+            Réinitialiser
+          </button>
+        </div>
+        <p class="page__summary" id="population-summary" aria-live="polite">
+          {defaultSummary}
+        </p>
+      </section>
+
+      <section class="module module--chart" aria-labelledby="population-map-title">
+        <PlotFigure
+          figureId="population-choropleth"
+          title="Population par département"
+          subtitle={`Carte choroplèthe pour ${defaultYear}, ${defaultSex}, tranche ${defaultAge}.`}
+          caption="Visualisation générée avec Observable Plot à partir d'un jeu de données simulé."
+          options={plotOptions}
+        />
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src={populationScriptUrl}></script>
+
+  <style>
+    .page {
+      min-height: 100vh;
+      margin: 0;
+      background: radial-gradient(circle at top left, #eef3fb, #dae3f5);
+      color: #0f172a;
+      display: flex;
+      justify-content: center;
+      padding: clamp(2rem, 5vw, 4rem) clamp(1.5rem, 4vw, 3.5rem);
+    }
+
+    .page__shell {
+      width: min(1120px, 100%);
+      display: grid;
+      gap: clamp(1.75rem, 4vw, 3rem);
+    }
+
+    .page__intro {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .page__intro > h1 {
+      font-size: clamp(1.8rem, 2.75vw, 3rem);
+      margin: 0;
+    }
+
+    .page__intro > p {
+      margin: 0;
+      max-width: 65ch;
+      color: rgba(15, 23, 42, 0.7);
+    }
+
+    .module {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 1.25rem;
+      padding: clamp(1.5rem, 3vw, 2.5rem);
+      box-shadow: 0 20px 35px -25px rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .module--controls {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .control-group {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      align-items: end;
+    }
+
+    .control {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .control__label {
+      font-weight: 600;
+    }
+
+    .control__select {
+      min-width: 12ch;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid rgba(15, 23, 42, 0.15);
+      border-radius: 0.75rem;
+      background: #f8fafc;
+      font-size: 0.95rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .control__select:focus {
+      border-color: #2563eb;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+
+    .control__reset {
+      align-self: stretch;
+      padding: 0.75rem 1rem;
+      background: #1d4ed8;
+      color: #f8fafc;
+      border: none;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .control__reset:hover,
+    .control__reset:focus-visible {
+      background: #153a9b;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px -18px rgba(21, 58, 155, 0.8);
+      outline: none;
+    }
+
+    .page__summary {
+      margin: 0;
+      font-size: 0.95rem;
+      color: rgba(15, 23, 42, 0.72);
+    }
+
+    .module--chart {
+      padding: clamp(1.25rem, 3vw, 2.5rem);
+    }
+
+    @media (max-width: 768px) {
+      .page {
+        padding: 1.5rem;
+      }
+
+      .control__reset {
+        width: 100%;
+      }
+    }
+  </style>
+</Layout>

@@ -1,0 +1,273 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PlotFigure from "../components/PlotFigure.astro";
+import * as Plot from "@observablehq/plot";
+import departements from "../assets/departements.geojson.json";
+import establishments from "../assets/scolaire.json";
+
+const totalEstablishments = establishments.length;
+
+const plotOptions = {
+  projection: {
+    type: "mercator",
+    domain: departements,
+  },
+  inset: 12,
+  height: 520,
+  width: 960,
+  ariaLabel:
+    "Carte des etablissements scolaires et universitaires situes en France metropolitaine.",
+  color: {
+    legend: false,
+  },
+  marks: [
+    Plot.geo(departements, {
+      fill: "#e2e8f0",
+      stroke: "#94a3b8",
+      strokeWidth: 0.5,
+    }),
+    Plot.dot(establishments, {
+      longitude: "lon",
+      latitude: "lat",
+      r: 4.5,
+      fill: "#1d4ed8",
+      stroke: "white",
+      strokeWidth: 1,
+      title: (d) =>
+        `${d.name}
+Latitude: ${d.lat.toFixed(4)} — Longitude: ${d.lon.toFixed(4)}`,
+      tip: true,
+    }),
+  ],
+};
+---
+
+<Layout>
+  <main class="page">
+    <div class="page__shell">
+      <header class="page__intro">
+        <h1>Implantations scolaires et universitaires</h1>
+        <p>
+          Cette carte Observable Plot situe {totalEstablishments} etablissements scolaires et
+          universitaires fournis pour le TP. Utilisez la liste pour parcourir les etablissements
+          ou survolez les marqueurs pour afficher les coordonnees precises.
+        </p>
+      </header>
+
+      <section
+        class="module module--chart"
+        aria-labelledby="scolaire-map-title"
+        aria-describedby="scolaire-map-caption"
+      >
+        <PlotFigure
+          figureId="scolaire-map"
+          title="Etablissements scolaires et universitaires sur le territoire"
+          subtitle="Chaque point represente un etablissement; les departements servent de repere geographique."
+          caption="Visualisation realisee avec Observable Plot; donnees issues du fichier scolaire.json."
+          options={plotOptions}
+        />
+        <p id="scolaire-map-caption" class="module__note">
+          Conseil accessibilite : activez la fonction "Inspecter l'accessibilite" dans Chrome DevTools
+          ou Lighthouse pour verifier la presence du titre, de la legende et des tooltips.
+        </p>
+      </section>
+
+      <section class="module module--list" aria-labelledby="scolaire-list-title">
+        <header>
+          <h2 id="scolaire-list-title">Liste textuelle des etablissements</h2>
+          <p>
+            Les liens ouvrent la position sur OpenStreetMap dans un nouvel onglet pour faciliter la
+            verification manuelle.
+          </p>
+        </header>
+        <ul class="establishment-list">
+          {establishments.map((item, index) => (
+            <li class="establishment-list__item">
+              <div class="establishment-list__body">
+                <span class="establishment-list__index" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div class="establishment-list__details">
+                  <span class="establishment-list__name">{item.name}</span>
+                  <span class="establishment-list__coords">
+                    lat {item.lat.toFixed(4)}, lon {item.lon.toFixed(4)}
+                  </span>
+                </div>
+              </div>
+              <a
+                class="establishment-list__action"
+                href={`https://www.openstreetmap.org/?mlat=${item.lat}&mlon=${item.lon}#map=14/${item.lat}/${item.lon}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Ouvrir dans OSM
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <style>
+    .page {
+      min-height: 100vh;
+      margin: 0;
+      background: radial-gradient(circle at top left, #f3f7fd, #dce4f4);
+      color: #1b2735;
+      display: flex;
+      justify-content: center;
+      padding: clamp(2rem, 5vw, 4rem) clamp(1.5rem, 4vw, 3.5rem);
+    }
+
+    .page__shell {
+      width: min(1120px, 100%);
+      display: grid;
+      gap: clamp(1.75rem, 4vw, 3rem);
+    }
+
+    .page__intro {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .page__intro > h1 {
+      font-size: clamp(1.75rem, 2.75vw, 3rem);
+      margin: 0;
+    }
+
+    .page__intro > p {
+      margin: 0;
+      max-width: 65ch;
+      color: rgba(27, 39, 53, 0.75);
+    }
+
+    .module {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 1.25rem;
+      padding: clamp(1.5rem, 3vw, 2.5rem);
+      box-shadow: 0 20px 35px -25px rgba(27, 39, 53, 0.5);
+      border: 1px solid rgba(27, 39, 53, 0.05);
+    }
+
+    .module--chart {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .module__note {
+      margin: 0;
+      font-size: 0.95rem;
+      color: rgba(27, 39, 53, 0.68);
+    }
+
+    .module--list {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .module--list > header > h2 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .module--list > header > p {
+      margin: 0.35rem 0 0;
+      color: rgba(27, 39, 53, 0.7);
+    }
+
+    .establishment-list {
+      display: grid;
+      gap: 0.85rem;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .establishment-list__item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.9rem 1.15rem;
+      border-radius: 0.85rem;
+      background: rgba(240, 244, 249, 0.75);
+      border: 1px solid rgba(27, 39, 53, 0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .establishment-list__item:hover,
+    .establishment-list__item:focus-within {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px -18px rgba(27, 39, 53, 0.7);
+    }
+
+    .establishment-list__body {
+      display: flex;
+      align-items: baseline;
+      gap: 0.65rem;
+      flex: 1;
+      min-width: 16rem;
+    }
+
+    .establishment-list__index {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(27, 39, 53, 0.45);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .establishment-list__details {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .establishment-list__name {
+      font-weight: 600;
+      color: rgba(27, 39, 53, 0.88);
+    }
+
+    .establishment-list__coords {
+      font-size: 0.9rem;
+      color: rgba(27, 39, 53, 0.6);
+    }
+
+    .establishment-list__action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 0.9rem;
+      border-radius: 0.75rem;
+      background: #28527a;
+      color: #f8fafc;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .establishment-list__action:hover,
+    .establishment-list__action:focus-visible {
+      background: #16344f;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px -18px rgba(22, 52, 79, 0.8);
+      outline: none;
+    }
+
+    @media (max-width: 768px) {
+      .page {
+        padding: 1.5rem;
+      }
+
+      .establishment-list__body {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .establishment-list__action {
+        width: 100%;
+      }
+    }
+  </style>
+</Layout>

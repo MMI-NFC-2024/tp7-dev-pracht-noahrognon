@@ -4,11 +4,6 @@ import Layout from "../layouts/Layout.astro";
 import * as Plot from "@observablehq/plot";
 import penguins from "../assets/penguins.json";
 import { basePlotConfig, tooltipText } from "../utils/penguinPlotConfig";
-import penguinPlotScript from "../scripts/penguin-plot.ts?url";
-
-const speciesList = [...new Set(penguins.map((d) => d.species))].filter(Boolean).sort();
-const islandList = [...new Set(penguins.map((d) => d.island))].filter(Boolean).sort();
-const sexList = [...new Set(penguins.map((d) => d.sex))].filter(Boolean).sort();
 
 const plotOptions = {
   ...basePlotConfig,
@@ -34,10 +29,6 @@ const plotOptions = {
           Selectionnez une espece, une ile et un sexe pour filtrer ce nuage de points
           observant les dimensions du bec (culmen) des manchots de Palmer Station.
         </p>
-        <nav aria-label="Autres visualisations" class="page__links">
-          <a class="page__link" href="/scolaire/">Carte des etablissements</a>
-          <a class="page__link" href="/population/">Choroplethe population</a>
-        </nav>
       </header>
 
       <section class="module module--controls" aria-label="Filtres du graphique">
@@ -90,7 +81,7 @@ const plotOptions = {
     </div>
   </main>
 
-  <script type="module" src={penguinPlotScript}></script>
+  <script type="module" src={Astro.resolve("../scripts/penguin-plot.ts")}></script>
 
   <style>
     .page {
@@ -124,34 +115,6 @@ const plotOptions = {
       margin: 0;
       max-width: 60ch;
       color: rgba(0, 0, 0, 0.75);
-    }
-
-    .page__links {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .page__link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.55rem 1rem;
-      border-radius: 999px;
-      background: rgba(58, 110, 165, 0.12);
-      border: 1px solid rgba(58, 110, 165, 0.2);
-      color: #1e3a56;
-      font-weight: 600;
-      text-decoration: none;
-      transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .page__link:hover,
-    .page__link:focus-visible {
-      background: rgba(58, 110, 165, 0.25);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px -12px rgba(58, 110, 165, 0.65);
-      outline: none;
     }
 
     .module {
@@ -240,3 +203,4 @@ const plotOptions = {
     }
   </style>
 </Layout>
+
